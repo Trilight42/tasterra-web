@@ -377,3 +377,51 @@ footer {
 #food-results {
   grid-template-columns: 1fr;
 }
+
+/* Tlačítko pro načítání dalších jídel */
+.load-more-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin: 24px auto;
+  text-align: center;
+}
+
+.load-more-container p {
+  margin: 0;
+  color: #666;
+  font-size: 0.95rem;
+}
+
+.load-more-container button {
+  background-color: #d97732;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 12px 24px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
+  transition:
+    background-color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.load-more-container button:hover {
+  background-color: #bd6125;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 12px rgba(0, 0, 0, 0.18);
+}
+
+.load-more-container button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.12);
+}
+
+.load-more-container button:focus-visible {
+  outline: 3px solid #f3b183;
+  outline-offset: 3px;
+}
