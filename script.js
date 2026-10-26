@@ -1,4 +1,3 @@
-
 let festivalData = null;
 
 // Uložené akce a splněné výzvy zachováme i po obnovení stránky.
@@ -53,17 +52,20 @@ async function init() {
   }
 }
 
-// Zobrazení programových akcí
+// Zobrazení programových akcí v rozbalovacích skupinách podle dnů
 function renderEvents() {
   const container = document.querySelector("#event-list");
-
   const selectedDay = document.querySelector("#filter-day").value;
   const selectedType = document.querySelector("#filter-type").value;
+  const dayLabels = {
+    "2026-10-23": "Pátek 23. října",
+    "2026-10-24": "Sobota 24. října",
+    "2026-10-25": "Neděle 25. října"
+  };
 
   const filteredEvents = festivalData.events.filter(event => {
     const matchesDay = !selectedDay || event.date === selectedDay;
     const matchesType = !selectedType || event.type === selectedType;
-
     return matchesDay && matchesType;
   });
 
@@ -72,63 +74,63 @@ function renderEvents() {
     return;
   }
 
-  container.innerHTML = filteredEvents.map(event => {
-    const isSaved = savedEvents.includes(event.id);
-    const venue = festivalData.venues.find(
-      item => item.id === event.venueId
-    );
+  const days = selectedDay ? [selectedDay] : Object.keys(dayLabels);
+  container.innerHTML = days.map(day => {
+    const dayEvents = filteredEvents.filter(event => event.date === day);
+    if (dayEvents.length === 0) return "";
 
-    const date = new Date(event.date + "T12:00:00")
-      .toLocaleDateString("cs-CZ", {
-        day: "numeric",
-        month: "long"
-      });
+    const cards = dayEvents.map(event => {
+      const isSaved = savedEvents.includes(event.id);
+      const venue = festivalData.venues.find(item => item.id === event.venueId);
+      return `
+        <article class="card">
+          <p>${event.startTime}–${event.endTime}</p>
+          <h3>${text(event.title)}</h3>
+          <p>${venue ? text(venue.name) : "Místo bude upřesněno"}</p>
+          <p>Typ akce: ${event.type}</p>
+          <button data-save-event="${event.id}">
+            ${isSaved ? "Odebrat z mého programu" : "Přidat do mého programu"}
+          </button>
+        </article>
+      `;
+    }).join("");
 
     return `
-      <article class="card">
-        <p>${date} · ${event.startTime}–${event.endTime}</p>
-        <h3>${text(event.title)}</h3>
-        <p>${venue ? text(venue.name) : "Místo bude upřesněno"}</p>
-        <p>Typ akce: ${event.type}</p>
-        <button data-save-event="${event.id}">
-          ${isSaved ? "Odebrat z mého programu" : "Přidat do mého programu"}
-        </button>
-      </article>
+      <details class="accordion program-day" ${selectedDay ? "open" : ""}>
+        <summary>
+          <span>${dayLabels[day] || day}</span>
+          <span class="accordion-count">${dayEvents.length} ${dayEvents.length === 1 ? "akce" : "akcí"}</span>
+        </summary>
+        <div class="accordion-content event-grid">${cards}</div>
+      </details>
     `;
   }).join("");
 }
 
-// Vyhledávání v menu a stáncích
+// Vyhledávání jídel seskupených do rozbalovacích stánků
 function renderFood(searchText = "") {
   const container = document.querySelector("#food-results");
   const query = searchText.trim().toLocaleLowerCase("cs-CZ");
 
   const menu = festivalData.menuItems.map(item => {
-    const stand = festivalData.stands.find(
-      stand => stand.id === item.standId
-    );
-
+    const stand = festivalData.stands.find(stand => stand.id === item.standId);
     const country = stand
       ? festivalData.countries.find(country => country.id === stand.countryId)
       : null;
-
     const venue = stand
       ? festivalData.venues.find(venue => venue.id === stand.venueId)
       : null;
-
     return { item, stand, country, venue };
   });
 
   const matches = menu.filter(({ item, stand, country, venue }) => {
     const searchableText = [
-      text(item.name),
-      text(item.description),
+      text(item.name), text(item.description),
       stand ? text(stand.name) : "",
       stand ? text(stand.description) : "",
       country ? text(country.name) : "",
       venue ? text(venue.name) : ""
     ].join(" ").toLocaleLowerCase("cs-CZ");
-
     return searchableText.includes(query);
   });
 
@@ -137,23 +139,46 @@ function renderFood(searchText = "") {
     return;
   }
 
-  container.innerHTML = matches.slice(0, 30).map(
-    ({ item, stand, country, venue }) => `
-      <article class="card">
-        <h3>${text(item.name)}</h3>
+  // Seskupení výsledků podle stánků zkrátí stránku a zachová kontext jídla.
+  const visibleMatches = matches.slice(0, 30);
+  const grouped = new Map();
+  visibleMatches.forEach(entry => {
+    const key = entry.stand ? entry.stand.id : "unknown-stand";
+    if (!grouped.has(key)) grouped.set(key, { stand: entry.stand, entries: [] });
+    grouped.get(key).entries.push(entry);
+  });
+
+  const groups = [...grouped.values()];
+  container.innerHTML = groups.map(({ stand, entries }) => {
+    const first = entries[0];
+    const cards = entries.map(({ item, country, venue }) => `
+      <article class="card food-card">
+        <h4>${text(item.name)}</h4>
         <p>${text(item.description)}</p>
-        <p><strong>Stánek:</strong> ${stand ? text(stand.name) : "Neuvedeno"}</p>
         <p><strong>Země:</strong> ${country ? text(country.name) : "Neuvedeno"}</p>
         <p><strong>Místo:</strong> ${venue ? text(venue.name) : "Neuvedeno"}</p>
         <p><strong>Cena:</strong> ${item.priceCzk} Kč</p>
       </article>
-    `
-  ).join("");
+    `).join("");
+
+    return `
+      <details class="accordion food-stand">
+        <summary>
+          <span>${stand ? text(stand.name) : "Ostatní nabídka"}</span>
+          <span class="accordion-count">${entries.length} ${entries.length === 1 ? "položka" : "položek"}</span>
+        </summary>
+        <div class="accordion-content food-grid">
+          ${stand ? `<p class="stand-description">${text(stand.description)}</p>` : ""}
+          ${cards}
+        </div>
+      </details>
+    `;
+  }).join("");
 
   if (matches.length > 30) {
     container.insertAdjacentHTML(
       "beforeend",
-      `<p>Zobrazeno 30 z ${matches.length} výsledků. Upřesni hledání.</p>`
+      `<p>Zobrazeno prvních 30 z ${matches.length} výsledků. Upřesni hledání.</p>`
     );
   }
 }
@@ -229,6 +254,13 @@ function renderSavedEvents() {
     </article>
   `).join("");
 }
+
+// Filtry a vyhledávání reagují okamžitě.
+document.querySelector("#filter-day").addEventListener("change", renderEvents);
+document.querySelector("#filter-type").addEventListener("change", renderEvents);
+document.querySelector("#food-search").addEventListener("input", event => {
+  renderFood(event.target.value);
+});
 
 // Obsluha tlačítek
 document.addEventListener("click", event => {
