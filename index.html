@@ -1,0 +1,97 @@
+
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Objev světové kuchyně na festivalu TASTERRA 2026.">
+  <title>TASTERRA 2026 | Ochutnej svět</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="logo" href="#uvod">TASTERRA<span>.</span></a>
+
+    <nav aria-label="Hlavní navigace">
+      <a href="#program">Program</a>
+      <a href="#jidlo">Jídlo</a>
+      <a href="#quest">Taste Quest</a>
+      <a href="#muj-program">Můj program</a>
+    </nav>
+  </header>
+
+  <main>
+    <section id="uvod" class="hero">
+      <p class="eyebrow">23.–25. ŘÍJNA 2026 · PRAHA LETŇANY</p>
+      <h1>Ochutnej svět.<br>Dokonči svou výpravu.</h1>
+      <p>
+        Objevuj chutě šesti světových regionů,
+        navštěvuj workshopy a plň výzvy Taste Quest.
+      </p>
+      <a class="button" href="#program">Prozkoumat festival</a>
+    </section>
+
+    <section id="program" class="section">
+      <p class="eyebrow">NAPLÁNUJ SI NÁVŠTĚVU</p>     
+      <h2>Festivalový program</h2>
+      <p>Vyber si den nebo typ akce a naplánuj si návštěvu.</p>
+
+      <div class="filters">
+        <div>
+          <label for="filter-day">Den festivalu</label>
+          <select id="filter-day">
+            <option value="">Všechny dny</option>
+            <option value="2026-10-23">Pátek 23. října</option>
+            <option value="2026-10-24">Sobota 24. října</option>
+            <option value="2026-10-25">Neděle 25. října</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="filter-type">Typ akce</label>
+          <select id="filter-type">
+            <option value="">Všechny typy</option>
+            <option value="workshop">Workshop</option>
+            <option value="cooking-show">Kuchařská show</option>
+            <option value="tasting">Ochutnávka</option>
+            <option value="concert">Koncert</option>
+            <option value="talk">Přednáška</option>
+            <option value="competition">Soutěž</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="event-list"></div>
+
+    </section>
+
+    <section id="jidlo" class="section">
+      <p class="eyebrow">CHUTĚ Z CELÉHO SVĚTA</p>
+      <h2>Co ochutnáš?</h2>
+      <label for="food-search">Najdi jídlo nebo stánek</label>
+      <input id="food-search" type="search"
+        placeholder="Např. ramen, sushi, Tokyo Bowl">
+      <div id="food-results" aria-live="polite"></div>
+    </section>
+
+    <section id="quest" class="section">
+      <p class="eyebrow">OBJE­VUJ · PLŇ · SBÍREJ BODY</p>
+      <h2>Taste Quest</h2>
+      <p>Plň výzvy a objevuj nové světové kuchyně.</p>
+      <div id="quest-progress"></div>
+      <div id="quest-list"></div>
+    </section>
+
+    <section id="muj-program" class="section">
+      <p class="eyebrow">TVŮJ OSOBNÍ VÝBĚR</p>
+      <h2>Můj program</h2>
+      <div id="saved-events"></div>
+    </section>
+  </main>
+
+  <footer>
+    <p>TASTERRA 2026 · Ochutnej svět. Dokonči svou výpravu.</p>
+  </footer>
+</body>
+</html>
