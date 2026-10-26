@@ -1,4 +1,6 @@
 let festivalData = null;
+let visibleFoodLimit = 30;
+let foodLoadMessage = "";
 
 // Uložené akce a splněné výzvy zachováme i po obnovení stránky.
 let savedEvents = JSON.parse(
@@ -108,29 +110,39 @@ function renderEvents() {
 }
 
 // Vyhledávání jídel seskupených do rozbalovacích stánků
+
 function renderFood(searchText = "") {
   const container = document.querySelector("#food-results");
   const query = searchText.trim().toLocaleLowerCase("cs-CZ");
 
   const menu = festivalData.menuItems.map(item => {
-    const stand = festivalData.stands.find(stand => stand.id === item.standId);
+    const stand = festivalData.stands.find(
+      stand => stand.id === item.standId
+    );
     const country = stand
-      ? festivalData.countries.find(country => country.id === stand.countryId)
+      ? festivalData.countries.find(
+          country => country.id === stand.countryId
+        )
       : null;
     const venue = stand
-      ? festivalData.venues.find(venue => venue.id === stand.venueId)
+      ? festivalData.venues.find(
+          venue => venue.id === stand.venueId
+        )
       : null;
+
     return { item, stand, country, venue };
   });
 
   const matches = menu.filter(({ item, stand, country, venue }) => {
     const searchableText = [
-      text(item.name), text(item.description),
+      text(item.name),
+      text(item.description),
       stand ? text(stand.name) : "",
       stand ? text(stand.description) : "",
       country ? text(country.name) : "",
       venue ? text(venue.name) : ""
     ].join(" ").toLocaleLowerCase("cs-CZ");
+
     return searchableText.includes(query);
   });
 
@@ -139,49 +151,87 @@ function renderFood(searchText = "") {
     return;
   }
 
-  // Seskupení výsledků podle stánků zkrátí stránku a zachová kontext jídla.
-  const visibleMatches = matches.slice(0, 30);
+  // Zobrazíme vše až do aktuálního limitu.
+  const visibleMatches = matches.slice(
+    0,
+    Math.min(visibleFoodLimit, matches.length)
+  );
+
+  // Seskupíme viditelná jídla podle stánků.
   const grouped = new Map();
+
   visibleMatches.forEach(entry => {
     const key = entry.stand ? entry.stand.id : "unknown-stand";
-    if (!grouped.has(key)) grouped.set(key, { stand: entry.stand, entries: [] });
+
+    if (!grouped.has(key)) {
+      grouped.set(key, {
+        stand: entry.stand,
+        entries: []
+      });
+    }
+
     grouped.get(key).entries.push(entry);
   });
 
-  const groups = [...grouped.values()];
-  container.innerHTML = groups.map(({ stand, entries }) => {
-    const first = entries[0];
-    const cards = entries.map(({ item, country, venue }) => `
-      <article class="card food-card">
-        <h4>${text(item.name)}</h4>
-        <p>${text(item.description)}</p>
-        <p><strong>Země:</strong> ${country ? text(country.name) : "Neuvedeno"}</p>
-        <p><strong>Místo:</strong> ${venue ? text(venue.name) : "Neuvedeno"}</p>
-        <p><strong>Cena:</strong> ${item.priceCzk} Kč</p>
-      </article>
-    `).join("");
+  container.innerHTML = [...grouped.values()]
+    .map(({ stand, entries }) => {
+      const cards = entries.map(({ item, country, venue }) => `
+        <article class="card food-card">
+          <h4>${text(item.name)}</h4>
+          <p>${text(item.description)}</p>
+          <p><strong>Země:</strong> ${
+            country ? text(country.name) : "Neuvedeno"
+          }</p>
+          <p><strong>Místo:</strong> ${
+            venue ? text(venue.name) : "Neuvedeno"
+          }</p>
+          <p><strong>Cena:</strong> ${item.priceCzk} Kč</p>
+        </article>
+      `).join("");
 
-    return `
-      <details class="accordion food-stand">
-        <summary>
-          <span>${stand ? text(stand.name) : "Ostatní nabídka"}</span>
-          <span class="accordion-count">${entries.length} ${entries.length === 1 ? "položka" : "položek"}</span>
-        </summary>
-        <div class="accordion-content food-grid">
-          ${stand ? `<p class="stand-description">${text(stand.description)}</p>` : ""}
-          ${cards}
-        </div>
-      </details>
-    `;
-  }).join("");
+      return `
+        <details class="accordion food-stand">
+          <summary>
+            <span>${stand ? text(stand.name) : "Ostatní nabídka"}</span>
+            <span class="accordion-count">
+              ${entries.length}
+              ${entries.length === 1 ? "položka" : "položek"}
+            </span>
+          </summary>
+          <div class="accordion-content food-grid">
+            ${
+              stand
+                ? `<p class="stand-description">${text(stand.description)}</p>`
+                : ""
+            }
+            ${cards}
+          </div>
+        </details>
+      `;
+    }).join("");
 
-  if (matches.length > 30) {
-    container.insertAdjacentHTML(
-      "beforeend",
-      `<p>Zobrazeno prvních 30 z ${matches.length} výsledků. Upřesni hledání.</p>`
-    );
+  // Tlačítko zobrazíme jen tehdy, když zbývají další výsledky.
+  const loadMoreContainer = document.createElement("div");
+  loadMoreContainer.className = "load-more-container";
+
+  const status = document.createElement("p");
+  status.textContent =
+  `Zobrazeno ${visibleMatches.length} z ${matches.length} jídel.` +
+  (foodLoadMessage ? ` ${foodLoadMessage}` : "");
+
+  loadMoreContainer.appendChild(status);
+
+  if (visibleMatches.length < matches.length) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.dataset.loadMoreFood = "";
+    button.textContent = "Zobrazit dalších 30 jídel";
+    loadMoreContainer.appendChild(button);
   }
+
+  container.appendChild(loadMoreContainer);
 }
+
 
 // Zobrazení výzev Taste Quest
 function renderQuests() {
@@ -258,12 +308,18 @@ function renderSavedEvents() {
 // Filtry a vyhledávání reagují okamžitě.
 document.querySelector("#filter-day").addEventListener("change", renderEvents);
 document.querySelector("#filter-type").addEventListener("change", renderEvents);
-document.querySelector("#food-search").addEventListener("input", event => {
-  renderFood(event.target.value);
-});
 
 // Obsluha tlačítek
 document.addEventListener("click", event => {
+  const loadMoreButton = event.target.closest("[data-load-more-food]");
+
+if (loadMoreButton) {
+  visibleFoodLimit += 30;
+  foodLoadMessage = "Načetli jsme další jídla.";
+
+  renderFood(document.querySelector("#food-search").value);
+  return;
+}
   const saveButton = event.target.closest("[data-save-event]");
   const questButton = event.target.closest("[data-complete-quest]");
 
@@ -293,6 +349,9 @@ document.addEventListener("click", event => {
 
 // Reakce na vyhledávání
 document.querySelector("#food-search").addEventListener("input", event => {
+  visibleFoodLimit = 30;
+  foodLoadMessage = "";
+
   if (festivalData) {
     renderFood(event.target.value);
   }
